@@ -175,17 +175,17 @@ Matrix4x4 DirectionToDirection(const Vector3& from, const Vector3& to)
 
 	Matrix4x4 result = {};
 	result.m[0][0] = t * x * x + c;
-	result.m[0][1] = t * x * y - s * z;
-	result.m[0][2] = t * x * z + s * y;
+	result.m[0][1] = t * x * y + s * z;
+	result.m[0][2] = t * x * z - s * y;
 	result.m[0][3] = 0;
 
-	result.m[1][0] = t * x * y + s * z;
+	result.m[1][0] = t * x * y - s * z;
 	result.m[1][1] = t * y * y + c;
-	result.m[1][2] = t * y * z - s * x;
+	result.m[1][2] = t * y * z + s * x;
 	result.m[1][3] = 0;
 
-	result.m[2][0] = t * x * z - s * y;
-	result.m[2][1] = t * y * z + s * x;
+	result.m[2][0] = t * x * z + s * y;
+	result.m[2][1] = t * y * z - s * x;
 	result.m[2][2] = t * z * z + c;
 	result.m[2][3] = 0;
 
