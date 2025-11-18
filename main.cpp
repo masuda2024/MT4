@@ -60,7 +60,51 @@ struct Vector3
 	Vector3() : x(0), y(0), z(0) {}
 	Vector3(float x, float y, float z) : x(x), y(y), z(z) {}
 	
+	// 演算子オーバーロード
+	Vector3 operator-(const Vector3& other) const
+	{
+		return { x - other.x, y - other.y, z - other.z };
+	}
 
+	Vector3 operator+(const Vector3& other) const
+	{
+		return { x + other.x, y + other.y, z + other.z };
+	}
+
+	Vector3 operator*(float scalar) const
+	{
+		return { x * scalar, y * scalar, z * scalar };
+	}
+
+	// スカラー乗算（float * Vector3）も必要なら friend 関数として
+	friend Vector3 operator*(float scalar, const Vector3& vec)
+	{
+		return { vec.x * scalar, vec.y * scalar, vec.z * scalar };
+	}
+
+	Vector3 operator/(float scalar) const
+	{
+		return { x / scalar, y / scalar, z / scalar };
+	}
+
+	// += 演算子
+	Vector3& operator+=(const Vector3& other)
+	{
+		x += other.x;
+		y += other.y;
+		z += other.z;
+		return *this;
+	}
+
+	// -= 演算子
+	Vector3& operator-=(const Vector3& other)
+	{
+		x -= other.x;
+		y -= other.y;
+		z -= other.z;
+		return *this;
+	}
+	/**/
 	// 単項マイナス演算子のオーバーロード
 	Vector3 operator-() const
 	{
@@ -249,6 +293,7 @@ Vector3 RotateVector(const Vector3& vector, const Quaternion& quaternion)
 }
 
 
+
 //Quaternionから回転行列を求める
 Matrix4x4 MakeRotateMatrix(const Quaternion& q)
 {
@@ -288,8 +333,107 @@ Matrix4x4 MakeRotateMatrix(const Quaternion& q)
 	return mat;
 }
 
+/*
+Quaternion Slerp(const Quaternion& q0, const Quaternion& q1, float t)
+{
+	// クォータニオンの内積を計算
+	float dot = q0.x * q1.x + q0.y * q1.y + q0.z * q1.z + q0.w * q1.w;
+	// 内積が負の場合、q1を反転させて最短経路を取る
+	Quaternion q1Adjusted = q1;
+	if (dot < 0.0f) 
+	{
+		
+		dot = -dot;
+		q1Adjusted.x = -q1.x;
+		q1Adjusted.y = -q1.y;
+		q1Adjusted.z = -q1.z;
+		q1Adjusted.w = -q1.w;
+	}
+	const float DOT_THRESHOLD = 0.9995f;
+	if (dot > DOT_THRESHOLD) 
+	{
+		// クォータニオンが非常に近い場合、線形補間を使用
+		Quaternion result;
+		
+		result.x = (1.0f - t) * q0.x + t * q1Adjusted.x;
+		result.y = (1.0f - t) * q0.y + t * q1Adjusted.y;
+		result.z = (1.0f - t) * q0.z + t * q1Adjusted.z;
+		result.w = (1.0f - t) * q0.w + t * q1Adjusted.w;
+		
+
+		
+		
+		
+		
+		
+		return Normalize(result);
+	}
+	// θを計算
+	float theta_0 = acosf(dot);
+	float theta = theta_0 * t;
+	// q2を正規化
+	Quaternion q2;
+	q2.x = q1Adjusted.x - dot * q0.x;
+	q2.y = q1Adjusted.y - dot * q0.y;
+	q2.z = q1Adjusted.z - dot * q0.z;
+	q2.w = q1Adjusted.w - dot * q0.w;
+	q2 = Normalize(q2);
+	// 最終的なクォータニオンを計算
+	Quaternion result;
+	result.x = cosf(theta) * q0.x + sinf(theta) * q1.x;
+	result.y = cosf(theta) * q0.y + sinf(theta) * q1.y;
+	result.z = cosf(theta) * q0.z + sinf(theta) * q1.z;
+	result.w = cosf(theta) * q0.w + sinf(theta) * q1.w;
 
 
+	return result;
+}
+*/
+
+Quaternion Slerp(const Quaternion& q0, const Quaternion& q1, float t)
+{
+	// Dot product
+	float dot = q0.x * q1.x + q0.y * q1.y + q0.z * q1.z + q0.w * q1.w;
+
+	// If dot < 0, use the long way around the sphere
+	Quaternion q1Adjusted = q1;
+	if (dot < 0.0f)
+	{
+		dot = -dot;
+		q1Adjusted.x = -q1.x;
+		q1Adjusted.y = -q1.y;
+		q1Adjusted.z = -q1.z;
+		q1Adjusted.w = -q1.w;
+	}
+
+	const float DOT_THRESHOLD = 0.9995f;
+	if (dot > DOT_THRESHOLD)
+	{
+		// Linear interpolation (LERP)
+		Quaternion result;
+		result.x = (1.0f - t) * q0.x + t * q1Adjusted.x;
+		result.y = (1.0f - t) * q0.y + t * q1Adjusted.y;
+		result.z = (1.0f - t) * q0.z + t * q1Adjusted.z;
+		result.w = (1.0f - t) * q0.w + t * q1Adjusted.w;
+
+		return Normalize(result);
+	}
+
+	// Angle between q0 and q1
+	float theta0 = acosf(dot);
+	float sin_theta0 = sinf(theta0);
+
+	float s0 = sinf((1.0f - t) * theta0) / sin_theta0;
+	float s1 = sinf(t * theta0) / sin_theta0;
+
+	Quaternion result;
+	result.x = s0 * q0.x + s1 * q1Adjusted.x;
+	result.y = s0 * q0.y + s1 * q1Adjusted.y;
+	result.z = s0 * q0.z + s1 * q1Adjusted.z;
+	result.w = s0 * q0.w + s1 * q1Adjusted.w;
+
+	return result;
+}
 #pragma endregion
 
 
@@ -375,15 +519,17 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		/// 
 
 		
+		
 
-		Quaternion rotation = MakeRotateAxisAngleQuaternion
-		(
-			Normalize(Vector3{ 1.0f,0.4f,-0.2f }), 0.45f
-		);
-		Vector3 pointY = { 2.1f,-0.9f,1.3f };
-		Matrix4x4 rotateMatrix = MakeRotateMatrix(rotation);
-		Vector3 rotateByQuaternion = RotateVector(pointY, rotation);
-		Vector3 rotateByMatrix = Transform(pointY, rotateMatrix);
+
+		Quaternion rotation0 = MakeRotateAxisAngleQuaternion({ 0.71f,0.71f,0.0f }, 0.3f);
+		Quaternion rotation1 = MakeRotateAxisAngleQuaternion({ 0.71f,0.0f,0.71f }, 3.141592f);
+		
+		Quaternion interpolate0 = Slerp(rotation0, rotation1, 0.0f);
+		Quaternion interpolate1 = Slerp(rotation0, rotation1, 0.3f);
+		Quaternion interpolate2 = Slerp(rotation0, rotation1, 0.5f);
+		Quaternion interpolate3 = Slerp(rotation0, rotation1, 0.7f);
+		Quaternion interpolate4 = Slerp(rotation0, rotation1, 1.0f);
 
 
 
@@ -397,11 +543,12 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 		///
 		
 		
-		QuaternionScreenPrintf(0, kRowHeight * 0, rotation, "                               :  rotation");
-		MatrixScreenPrintf(0, kRowHeight * 1, rotateMatrix, "rotateMatrix");
-		VectorScreenPrintf(0, kRowHeight * 6, rotateByQuaternion, "           :  rotateByQuaterion");
-		VectorScreenPrintf(0, kRowHeight * 7, rotateByMatrix, "           :  rotateByMatrix");
 
+		QuaternionScreenPrintf(0, kRowHeight * 0, interpolate0, "                               :  interpolate0,Slerp(q0,q1,0.0f)");
+		QuaternionScreenPrintf(0, kRowHeight * 1, interpolate1, "                               :  interpolate1,Slerp(q0,q1,0.3f)");
+		QuaternionScreenPrintf(0, kRowHeight * 2, interpolate2, "                               :  interpolate2,Slerp(q0,q1,0.5f)");
+		QuaternionScreenPrintf(0, kRowHeight * 3, interpolate3, "                               :  interpolate3,Slerp(q0,q1,0.7f)");
+		QuaternionScreenPrintf(0, kRowHeight * 4, interpolate4, "                               :  interpolate4,Slerp(q0,q1,1.0f)");
 
 
 
