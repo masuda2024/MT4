@@ -66,6 +66,7 @@ struct Vector3
 		return { x - other.x, y - other.y, z - other.z };
 	}
 
+
 	Vector3 operator+(const Vector3& other) const
 	{
 		return { x + other.x, y + other.y, z + other.z };
@@ -95,7 +96,7 @@ struct Vector3
 		z += other.z;
 		return *this;
 	}
-
+	
 	// -= 演算子
 	Vector3& operator-=(const Vector3& other)
 	{
@@ -104,13 +105,14 @@ struct Vector3
 		z -= other.z;
 		return *this;
 	}
-	/**/
+	
 	// 単項マイナス演算子のオーバーロード
 	Vector3 operator-() const
 	{
 		return { -x, -y, -z };
 	}
 };
+
 
 
 //4×4行列
@@ -245,7 +247,8 @@ Quaternion MakeRotateAxisAngleQuaternion(const Vector3 axis, float angle)
 {
 	// 軸を正規化
 	float len = std::sqrt(axis.x * axis.x + axis.y * axis.y + axis.z * axis.z);
-	if (len == 0.0f) {
+	if (len == 0.0f)
+	{
 		// 軸がゼロベクトルの場合、単位クォータニオンを返す
 		return { 1.0f, 0.0f, 0.0f, 0.0f };
 	}
@@ -292,7 +295,9 @@ Vector3 RotateVector(const Vector3& vector, const Quaternion& quaternion)
 	return result;
 }
 
-
+//mat.m[0][0] = 1.0f - 2.0f * (yy + zz);
+	//mat.m[1][1] = 1.0f - 2.0f * (xx + zz);
+	//mat.m[2][2] = 1.0f - 2.0f * (xx + yy);
 
 //Quaternionから回転行列を求める
 Matrix4x4 MakeRotateMatrix(const Quaternion& q)
@@ -308,20 +313,24 @@ Matrix4x4 MakeRotateMatrix(const Quaternion& q)
 	float wx = q.w * q.x;
 	float wy = q.w * q.y;
 	float wz = q.w * q.z;
+	
+	
+	float ww = q.w * q.w;
 
-	mat.m[0][0] = 1.0f - 2.0f * (yy + zz);
+	
+	mat.m[0][0] = ww + xx - yy - zz;
 	mat.m[0][1] = 2.0f * (xy + wz);
 	mat.m[0][2] = 2.0f * (xz - wy);
 	mat.m[0][3] = 0.0f;
 
 	mat.m[1][0] = 2.0f * (xy - wz);
-	mat.m[1][1] = 1.0f - 2.0f * (xx + zz);
+	mat.m[1][1] = ww - xx + yy - zz;
 	mat.m[1][2] = 2.0f * (yz + wx);
 	mat.m[1][3] = 0.0f;
 
 	mat.m[2][0] = 2.0f * (xz + wy);
 	mat.m[2][1] = 2.0f * (yz - wx);
-	mat.m[2][2] = 1.0f - 2.0f * (xx + yy);
+	mat.m[2][2] = ww - xx - yy + zz;
 	mat.m[2][3] = 0.0f;
 
 	// 同次座標変換用（位置や拡縮が無いので単位行列）
@@ -333,93 +342,48 @@ Matrix4x4 MakeRotateMatrix(const Quaternion& q)
 	return mat;
 }
 
-/*
-Quaternion Slerp(const Quaternion& q0, const Quaternion& q1, float t)
-{
-	// クォータニオンの内積を計算
-	float dot = q0.x * q1.x + q0.y * q1.y + q0.z * q1.z + q0.w * q1.w;
-	// 内積が負の場合、q1を反転させて最短経路を取る
-	Quaternion q1Adjusted = q1;
-	if (dot < 0.0f) 
-	{
-		
-		dot = -dot;
-		q1Adjusted.x = -q1.x;
-		q1Adjusted.y = -q1.y;
-		q1Adjusted.z = -q1.z;
-		q1Adjusted.w = -q1.w;
-	}
-	const float DOT_THRESHOLD = 0.9995f;
-	if (dot > DOT_THRESHOLD) 
-	{
-		// クォータニオンが非常に近い場合、線形補間を使用
-		Quaternion result;
-		
-		result.x = (1.0f - t) * q0.x + t * q1Adjusted.x;
-		result.y = (1.0f - t) * q0.y + t * q1Adjusted.y;
-		result.z = (1.0f - t) * q0.z + t * q1Adjusted.z;
-		result.w = (1.0f - t) * q0.w + t * q1Adjusted.w;
-		
-
-		
-		
-		
-		
-		
-		return Normalize(result);
-	}
-	// θを計算
-	float theta_0 = acosf(dot);
-	float theta = theta_0 * t;
-	// q2を正規化
-	Quaternion q2;
-	q2.x = q1Adjusted.x - dot * q0.x;
-	q2.y = q1Adjusted.y - dot * q0.y;
-	q2.z = q1Adjusted.z - dot * q0.z;
-	q2.w = q1Adjusted.w - dot * q0.w;
-	q2 = Normalize(q2);
-	// 最終的なクォータニオンを計算
-	Quaternion result;
-	result.x = cosf(theta) * q0.x + sinf(theta) * q1.x;
-	result.y = cosf(theta) * q0.y + sinf(theta) * q1.y;
-	result.z = cosf(theta) * q0.z + sinf(theta) * q1.z;
-	result.w = cosf(theta) * q0.w + sinf(theta) * q1.w;
-
-
-	return result;
-}
-*/
-
 Quaternion Slerp(const Quaternion& q0, const Quaternion& q1, float t)
 {
 	// Dot product
 	float dot = q0.x * q1.x + q0.y * q1.y + q0.z * q1.z + q0.w * q1.w;
 
-	// If dot < 0, use the long way around the sphere
+	// If dot < 0, reverse q1
 	Quaternion q1Adjusted = q1;
+
+	
 	if (dot < 0.0f)
 	{
+		q1Adjusted.x = -q0.x;
+		q1Adjusted.y = -q0.y;
+		q1Adjusted.z = -q0.z;
+
+		q1Adjusted.x = -q1Adjusted.x;
+		q1Adjusted.y = -q1Adjusted.y;
+		q1Adjusted.z = -q1Adjusted.z;
+		q1Adjusted.w = -q1Adjusted.w;
 		dot = -dot;
-		q1Adjusted.x = -q1.x;
-		q1Adjusted.y = -q1.y;
-		q1Adjusted.z = -q1.z;
-		q1Adjusted.w = -q1.w;
 	}
+
+	// Clamp dot (important for acosf safety)
+	dot = std::clamp(dot, -1.0f, 1.0f);
 
 	const float DOT_THRESHOLD = 0.9995f;
 	if (dot > DOT_THRESHOLD)
 	{
-		// Linear interpolation (LERP)
+		// LERP fallback
 		Quaternion result;
-		result.x = (1.0f - t) * q0.x + t * q1Adjusted.x;
-		result.y = (1.0f - t) * q0.y + t * q1Adjusted.y;
-		result.z = (1.0f - t) * q0.z + t * q1Adjusted.z;
-		result.w = (1.0f - t) * q0.w + t * q1Adjusted.w;
+		
+
+		result.x = (1.0f - t) * q1Adjusted.x + t * q1.x;
+		result.y = (1.0f - t) * q1Adjusted.y + t * q1.y;
+		result.z = (1.0f - t) * q1Adjusted.z + t * q1.z;
+		result.w = (1.0f - t) * q1Adjusted.w + t * q1.w;
+
 
 		return Normalize(result);
 	}
 
-	// Angle between q0 and q1
+	// SLERP
 	float theta0 = acosf(dot);
 	float sin_theta0 = sinf(theta0);
 
@@ -427,14 +391,31 @@ Quaternion Slerp(const Quaternion& q0, const Quaternion& q1, float t)
 	float s1 = sinf(t * theta0) / sin_theta0;
 
 	Quaternion result;
-	result.x = s0 * q0.x + s1 * q1Adjusted.x;
-	result.y = s0 * q0.y + s1 * q1Adjusted.y;
-	result.z = s0 * q0.z + s1 * q1Adjusted.z;
-	result.w = s0 * q0.w + s1 * q1Adjusted.w;
+	result.x = s0 * q0.x + s1 * q1.x;
+	result.y = s0 * q0.y + s1 * q1.y;
+	result.z = s0 * q0.z + s1 * q1.z;
+	result.w = s0 * q0.w + s1 * q1.w;
 
-	return result;
+	return Normalize(result);
 }
+
+
+
 #pragma endregion
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 static const int kRowHeight = 20;
@@ -474,6 +455,7 @@ void MatrixScreenPrintf(int x, int y, const Matrix4x4& matrix, const char* label
 	}
 }
 
+/*
 void VectorScreenPrintf(int x, int y, const Vector3& Vector, const char* label)
 {
 	Novice::ScreenPrintf(x, y, "%.02f", Vector.x);
@@ -483,7 +465,7 @@ void VectorScreenPrintf(int x, int y, const Vector3& Vector, const char* label)
 	Novice::ScreenPrintf(x + kColumnWidth * 2, y, "%.02f", Vector.z);
 
 	Novice::ScreenPrintf(x + kColumnWidth * 3, y, "%s", label);
-}
+}*/
 
 
 // エントリーポイント
